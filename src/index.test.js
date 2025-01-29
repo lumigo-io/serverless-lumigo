@@ -394,7 +394,7 @@ describe("Lumigo plugin (node.js)", () => {
 				serverless.service.plugins = ["serverless-esbuild"];
 			});
 
-			test("layers are added during after:package:initialize", async () => {
+			test("layers are added during after:package:createDeploymentArtifacts", async () => {
 				await lumigo.afterCreateDeploymentArtifacts();
 
 				assertNodejsFunctionsHaveLayers();
@@ -414,6 +414,25 @@ describe("Lumigo plugin (node.js)", () => {
 					expect.stringMatching(
 						/arn:aws:lambda:us-east-1:114300393969:layer:lumigo-node-tracer:\d+/
 					)
+				);
+			});
+
+			test("layers are added during after:deploy:function:packageFunction", async () => {
+				options.function = "hello";
+				serverless.service.provider.layers = ["custom-layer"];
+				await lumigo.afterDeployFunctionPackageFunction();
+
+				const functions = serverless.service.functions;
+				expect(functions.hello.handler).toBe("lumigo-auto-instrument.handler");
+				expect(functions.hello.layers).toHaveLength(2);
+				expect(functions.hello.layers[0]).toEqual("custom-layer");
+				expect(functions.hello.layers[1]).toEqual(
+					expect.stringMatching(
+						/arn:aws:lambda:us-east-1:114300393969:layer:lumigo-node-tracer:\d+/
+					)
+				);
+				expect(functions.hello.environment).toHaveProperty(
+					"LUMIGO_ORIGINAL_HANDLER"
 				);
 			});
 		});
@@ -441,7 +460,7 @@ describe("Lumigo plugin (node.js)", () => {
 				);
 			});
 
-			test("layers are added during after:package:initialize", async () => {
+			test("layers are added during after:package:createDeploymentArtifacts", async () => {
 				await lumigo.afterCreateDeploymentArtifacts();
 
 				assertNodejsFunctionsHaveLayers();
@@ -464,6 +483,25 @@ describe("Lumigo plugin (node.js)", () => {
 				);
 			});
 
+			test("layers are added during after:deploy:function:packageFunction", async () => {
+				options.function = "hello";
+				serverless.service.provider.layers = ["custom-layer"];
+				await lumigo.afterDeployFunctionPackageFunction();
+
+				const functions = serverless.service.functions;
+				expect(functions.hello.handler).toBe("lumigo-auto-instrument.handler");
+				expect(functions.hello.layers).toHaveLength(2);
+				expect(functions.hello.layers[0]).toEqual("custom-layer");
+				expect(functions.hello.layers[1]).toEqual(
+					expect.stringMatching(
+						/arn:aws:lambda:us-east-1:114300393969:layer:lumigo-node-tracer:\d*/
+					)
+				);
+				expect(functions.hello.environment).toHaveProperty(
+					"LUMIGO_ORIGINAL_HANDLER"
+				);
+			});
+
 			describe("if pinned to version 87 of layer", () => {
 				beforeEach(() => {
 					serverless.service.custom.lumigo.nodeLayerVersion = 87;
@@ -476,9 +514,9 @@ describe("Lumigo plugin (node.js)", () => {
 					assertNodejsFunctionsHaveLayers(87);
 				});
 
-				test("layers are added during after:package:createDeploymentArtifacts", async () => {
+				test("layer version 87 is added during after:deploy:function:packageFunction", async () => {
 					options.function = "hello";
-					await lumigo.afterCreateDeploymentArtifacts();
+					await lumigo.afterDeployFunctionPackageFunction();
 
 					const functions = serverless.service.functions;
 					expect(functions.hello.handler).toBe(
@@ -534,9 +572,9 @@ describe("Lumigo plugin (python)", () => {
 				assertPythonFunctionsHaveLayers();
 			});
 
-			test("layers are added during after:package:createDeploymentArtifacts", async () => {
+			test("layers are added during after:deploy:function:packageFunction", async () => {
 				options.function = "hello";
-				await lumigo.afterCreateDeploymentArtifacts();
+				await lumigo.afterDeployFunctionPackageFunction();
 
 				const functions = serverless.service.functions;
 				expect(functions.hello.handler).toBe(
@@ -564,9 +602,9 @@ describe("Lumigo plugin (python)", () => {
 					assertPythonFunctionsHaveLayers(87);
 				});
 
-				test("layers are added during after:package:createDeploymentArtifacts", async () => {
+				test("layer version 87 is added during after:deploy:function:packageFunction", async () => {
 					options.function = "hello";
-					await lumigo.afterCreateDeploymentArtifacts();
+					await lumigo.afterDeployFunctionPackageFunction();
 
 					const functions = serverless.service.functions;
 					expect(functions.hello.handler).toBe(
